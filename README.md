@@ -38,7 +38,7 @@ Program ini pada intinya adalah membuat server yang mendengarkan koneksi pada ad
 
 ---
 
-![commit22](image.png)
+![commit2](assets/images/commit2.png)
 
 Updates on `handle_connection` method:
 
@@ -68,5 +68,44 @@ Sebelumnya, fungsi `handle_connection` hanya membaca dan menampilkan request HTT
    ```
    - Mengirim response sebagai byte ke stream.
    - Error akan terjadi jika pengiriman gagal.
+
+---
+
+### Commit 3 reflection
+
+---
+
+![commit3](assets/images/commit3.png)
+
+
+Pada commit ini, terdapat perubahan yang saya lakukan, yaitu penambahan `404.html` dan penyesuaian logika pemrosesan HTTP request untuk menangani kasus URL yang tidak sesuai (404 Not Found).
+
+* Penambahan File `404.html`:  
+   File `404.html` ditambahkan sebagai halaman respons untuk request yang tidak valid atau tidak dikenali. Halaman ini memberikan informasi kepada pengguna ketika URL yang diminta tidak ditemukan di server.
+
+* Validasi dan Respons Selektif:  
+   Perubahan utama terjadi di metode `handle_connection` dan `build_response`. Berikut detailnya:
+
+   a. Perubahan pada `handle_connection`:
+   ```rust
+   let request_line = http_request.get(0).unwrap();
+   ```
+   Sebelumnya, fungsi ini tidak memvalidasi request line yang diterima. Request line pertama diambil untuk dijadikan parameter fungsi build_response
+
+   b. Penambahan fungsi baru `build_response`:
+   ```rust
+   let (status_line, filename) = if request_line == "GET / HTTP/1.1" {
+      ("HTTP/1.1 200 OK", "hello.html")
+   } else {
+      ("HTTP/1.1 404 NOT FOUND", "404.html")
+   };
+   ```
+   Perubahan ini menambahkan validasi sederhana untuk memeriksa apakah request line sesuai dengan format `GET / HTTP/1.1`. Jika sesuai, server merespons dengan file `hello.html` dan status `200 OK`. Jika tidak sesuai, server merespons dengan file `404.html` dan status `404 NOT FOUND`.
+
+   Penulisan respons ke stream tetap menggunakan 
+   ```rust
+   stream.write_all(response.as_bytes()).unwrap();
+   ```
+   tetapi kini respons lebih dinamis sesuai request.
 
 ---

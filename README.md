@@ -109,3 +109,13 @@ Pada commit ini, terdapat perubahan yang saya lakukan, yaitu penambahan `404.htm
    tetapi kini respons lebih dinamis sesuai request.
 
 ---
+
+Commit 4 reflection
+
+---
+
+Pada commit ini dilakukan simulasi delay 10 detik untuk mensimulasikan masalah yang dihadapi server kita karena running pada single-thread. Penambahan delay ini dilakukan pada endpoint `/sleep`, di mana ketika request diterima, program secara eksplisit menjalankan `thread::sleep(Duration::from_secs(10));`. Hal ini menyebabkan seluruh request lain yang datang ke server selama 10 detik tersebut harus menunggu hingga proses sleep selesai.
+
+Ketika saya mengakses `127.0.0.1:7878/sleep` di satu tab browser dan `127.0.0.1:7878` di tab lain secara bersamaan, saya mendapati kedua request tersebut mengalami delay. Untuk memastikan ini bukan masalah performa pada perangkat saya, saya mencoba mengakses hanya `127.0.0.1:7878`, dan halaman HTML berhasil ditampilkan dengan cepat. Ini menunjukkan bahwa server kita menangani request secara sequential dalam single thread. Ketika ada request lambat seperti `/sleep`, server menjadi ter-block dan tidak dapat memproses request lain hingga delay selesai. 
+
+Kondisi ini menggambarkan keterbatasan server single-thread: jika ada satu request yang membutuhkan waktu lama, seluruh request lain ikut terdampak. Dalam skenario nyata dengan banyak pengguna, hal ini bisa berdampak buruk pada performa server secara keseluruhan. Solusi yang mungkin untuk mengatasi masalah ini adalah dengan menggunakan multithreading atau asynchronous programming agar server dapat menangani request secara concurrent. Dengan begitu, request lambat tidak akan memblokir request lainnya, dan performa server dapat tetap optimal.

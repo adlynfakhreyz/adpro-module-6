@@ -119,3 +119,45 @@ Pada commit ini dilakukan simulasi delay 10 detik untuk mensimulasikan masalah y
 Ketika saya mengakses `127.0.0.1:7878/sleep` di satu tab browser dan `127.0.0.1:7878` di tab lain secara bersamaan, saya mendapati kedua request tersebut mengalami delay. Untuk memastikan ini bukan masalah performa pada perangkat saya, saya mencoba mengakses hanya `127.0.0.1:7878`, dan halaman HTML berhasil ditampilkan dengan cepat. Ini menunjukkan bahwa server kita menangani request secara sequential dalam single thread. Ketika ada request lambat seperti `/sleep`, server menjadi ter-block dan tidak dapat memproses request lain hingga delay selesai. 
 
 Kondisi ini menggambarkan keterbatasan server single-thread: jika ada satu request yang membutuhkan waktu lama, seluruh request lain ikut terdampak. Dalam skenario nyata dengan banyak pengguna, hal ini bisa berdampak buruk pada performa server secara keseluruhan. Solusi yang mungkin untuk mengatasi masalah ini adalah dengan menggunakan multithreading atau asynchronous programming agar server dapat menangani request secara concurrent. Dengan begitu, request lambat tidak akan memblokir request lainnya, dan performa server dapat tetap optimal.
+
+---
+
+### Commit 5 reflection 
+
+---
+
+Pada commit ini, implementasi server sederhana yang sebelumnya berjalan secara single-threaded telah diimprove menjadi multithreaded dengan menggunakan **ThreadPool**. Perubahan utama dilakukan dengan memisahkan logika multithreading ke dalam file `lib.rs` dan memodifikasi `main.rs` untuk memanfaatkan ThreadPool tersebut.
+
+Pada implementasi sebelumnya, server berjalan dalam mode **single-threaded**, di mana semua request diproses secara berurutan. Hal ini menyebabkan seluruh request harus menunggu jika terdapat request yang membutuhkan waktu lama, seperti pada endpoint `/sleep` yang memiliki delay 10 detik. Dalam situasi nyata, pendekatan ini dapat mengakibatkan **bottleneck** yang serius ketika banyak client mencoba mengakses server secara bersamaan.
+
+Dengan menerapkan ThreadPool, server mampu memproses request secara **paralel**, sehingga permintaan yang membutuhkan waktu lebih lama tidak akan memblokir request lainnya. Pendekatan ini secara signifikan meningkatkan performa server dalam menangani banyak client secara simultan.
+
+Pada file `lib.rs`, didefinisikan sebuah **struct** bernama `ThreadPool` yang mengelola sejumlah thread worker dan channel untuk komunikasi antar thread.
+
+- `ThreadPool::new(size: usize)`  
+  Fungsi ini membuat sebuah pool dengan jumlah thread sesuai parameter `size`. Masing-masing worker menerima receiver yang dibungkus dengan `Arc<Mutex<Receiver<Job>>>`, sehingga bisa diakses bersama-sama dengan aman.
+
+- `ThreadPool::execute<F>(f: F)`  
+  Fungsi ini menerima closure sebagai parameter, membungkusnya dalam `Box<dyn FnOnce() + Send + 'static>`, lalu mengirimkannya ke channel. Closure ini merupakan unit pekerjaan (`Job`) yang akan dieksekusi oleh thread worker.
+
+Di `main.rs`, objek ThreadPool dibuat dengan ukuran 4 thread (`ThreadPool::new(4)`). Pada setiap stream TCP yang masuk, dilakukan `pool.execute(move || handle_connection(stream))`. Hal ini memastikan bahwa setiap request akan dieksekusi oleh worker secara paralel.
+
+- **Distribusi Pekerjaan ke Worker:**  
+  ```rust
+  let thread = thread::spawn(move || loop {
+      let job = receiver.lock().unwrap().recv().unwrap();
+      println!("Worker {id} got a job; executing.");
+      job();
+  });
+  ```
+  Setiap worker menjalankan loop tanpa akhir (`loop {}`). Saat ada request yang diterima channel, worker akan mengeksekusi closure yang diberikan. Hal ini memungkinkan server tetap siap menangani request tambahan selama ada worker yang tersedia.
+
+- **Eksekusi dengan ThreadPool:**
+  ```rust
+  pool.execute(move || {
+      handle_connection(stream);
+  });
+  ```
+  Fungsi `execute` memastikan bahwa closure yang diberikan dieksekusi secara **concurrent**. Hal ini menghindari blokade pada endpoint `/sleep` yang sebelumnya menyebabkan server tidak responsif.
+
+Pendekatan ini tidak hanya meningkatkan performa server tetapi juga meminimalkan potensi bottleneck saat menangani banyak request secara bersamaan. Implementasi ini sejalan dengan praktik pengembangan server yang efisien dan scalable. Jika proyek berkembang dengan lebih banyak koneksi atau kompleksitas lebih tinggi, pendekatan ini dapat dikembangkan lebih lanjut dengan mekanisme pengelolaan worker yang lebih dinamis.

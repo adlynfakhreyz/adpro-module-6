@@ -3,6 +3,14 @@
 **Andi Muhammad Adlyn Fakhreyza Khairi Putra  
 2306241713**
 
+### Index
+
+- [Commit 1 reflection](#commit-1-reflection)
+- [Commit 2 reflection](#commit-2-reflection)
+- [Commit 3 reflection](#commit-3-reflection)
+- [Commit 4 reflection](#commit-4-reflection)
+- [Commit 5 reflection](#commit-5-reflection)
+- [Commit Bonus reflection](#commit-bonus-reflection)
 ---
 
 ### Commit 1 reflection
@@ -110,7 +118,7 @@ Pada commit ini, terdapat perubahan yang saya lakukan, yaitu penambahan `404.htm
 
 ---
 
-Commit 4 reflection
+### Commit 4 reflection
 
 ---
 
@@ -161,3 +169,15 @@ Di `main.rs`, objek ThreadPool dibuat dengan ukuran 4 thread (`ThreadPool::new(4
   Fungsi `execute` memastikan bahwa closure yang diberikan dieksekusi secara **concurrent**. Hal ini menghindari blokade pada endpoint `/sleep` yang sebelumnya menyebabkan server tidak responsif.
 
 Pendekatan ini tidak hanya meningkatkan performa server tetapi juga meminimalkan potensi bottleneck saat menangani banyak request secara bersamaan. Implementasi ini sejalan dengan praktik pengembangan server yang efisien dan scalable. Jika proyek berkembang dengan lebih banyak koneksi atau kompleksitas lebih tinggi, pendekatan ini dapat dikembangkan lebih lanjut dengan mekanisme pengelolaan worker yang lebih dinamis.
+
+---
+
+### Commit Bonus reflection
+
+---
+
+Pada commit bonus ini, saya telah menggantikan fungsi `new` dengan fungsi `build` dalam implementasi `ThreadPool`. Perubahan ini memberikan fleksibilitas lebih dalam menangani kesalahan dan memastikan ukuran `ThreadPool` valid (lebih besar dari 0) sebelum memulai proses threading.
+
+Fungsi `build` mengembalikan `Result<ThreadPool, &'static str>` yang memberikan mekanisme error handling yang lebih eksplisit dibandingkan penggunaan langsung `unwrap()` pada fungsi `new`.
+
+Selain itu, dengan adanya `build`, kita bisa dengan mudah memodifikasi logika inisialisasi tanpa harus merusak fungsi-fungsi yang sudah ada. Selain itu, penggunaan metode `expect("Failed to create thread pool")` juga memberikan pesan error yang lebih jelas jika terjadi kegagalan.
